@@ -390,10 +390,14 @@ modalRetry.addEventListener('click', () => {
 // Close modal when clicking the backdrop
 modal.addEventListener('click', e => { if (e.target === modal) modal.hidden = true; });
 
-// ─── Touch drag-and-drop ──────────────────────────────────────────────────────
+// ─── Touch drag-and-drop + long-press context menu ───────────────────────────
 
-let touchDrag  = null;
-let touchClone = null;
+let touchDrag      = null;
+let touchClone     = null;
+let longPressTimer = null;
+let touchMoved     = false;
+const LONG_PRESS_MS    = 500;
+const LONG_PRESS_SLOP  = 8; // px movement allowed before it's a drag not a press
 
 document.addEventListener('touchstart', e => {
   if (game.submitted) return;
@@ -404,7 +408,22 @@ document.addEventListener('touchstart', e => {
   const zone      = cardEl.dataset.zone;
   const slotIndex = cardEl.dataset.slotIndex != null ? parseInt(cardEl.dataset.slotIndex, 10) : null;
   const touch     = e.touches[0];
+  const startX    = touch.clientX;
+  const startY    = touch.clientY;
   const rect      = cardEl.getBoundingClientRect();
+
+  touchMoved = false;
+
+  // Long-press: show context menu if finger stays still for LONG_PRESS_MS
+  longPressTimer = setTimeout(() => {
+    if (touchMoved) return;
+    // Cancel the drag that was being set up
+    if (touchClone) { touchClone.remove(); touchClone = null; }
+    const orig = document.querySelector(`.card[data-card-id="${cardId}"]`);
+    if (orig) orig.style.opacity = '';
+    touchDrag = null;
+    showLongPressMenu(cardId, zone, slotIndex, startX, startY);
+  }, LONG_PRESS_MS);
 
   touchDrag = { cardId, zone, slotIndex, offsetX: touch.clientX - rect.left, offsetY: touch.clientY - rect.top };
 
@@ -417,9 +436,17 @@ document.addEventListener('touchstart', e => {
 }, { passive: true });
 
 document.addEventListener('touchmove', e => {
-  if (!touchDrag || !touchClone) return;
-  e.preventDefault();
+  if (!touchDrag) return;
   const t = e.touches[0];
+  // If finger moved beyond slop, it's a drag — cancel long-press
+  if (!touchMoved) {
+    const dx = t.clientX - (touchDrag.offsetX + (touchClone ? parseFloat(touchClone.style.left) : t.clientX));
+    // simpler: just mark moved once we exceed slop from any movement
+    touchMoved = true;
+    clearTimeout(longPressTimer);
+  }
+  if (!touchClone) return;
+  e.preventDefault();
   touchClone.style.left = `${t.clientX - touchDrag.offsetX}px`;
   touchClone.style.top  = `${t.clientY - touchDrag.offsetY}px`;
   autoScrollNearEdge(t.clientX, t.clientY);
@@ -457,6 +484,7 @@ function autoScrollNearEdge(cx, cy) {
 }
 
 document.addEventListener('touchend', e => {
+  clearTimeout(longPressTimer);
   if (!touchDrag) return;
   touchClone && touchClone.remove();
   touchClone = null;
@@ -486,6 +514,100 @@ document.addEventListener('touchend', e => {
   game.save();
   renderAll();
 }, { passive: true });
+
+// ─── Long-press context menu ─────────────────────────────────────────────────
+
+let longPressMenuEl = null;
+
+function showLongPressMenu(cardId, zone, slotIndex, cx, cy) {
+  if (game.submitted) return;
+  dismissLongPressMenu();
+
+  const card = CARD_MAP.get(cardId);
+  const isInLater = zone === 'later';
+  const isInDeck  = zone === 'deck';
+
+  const menu = document.createElement('div');
+  menu.className = 'lp-menu';
+  menu.setAttribute('role', 'dialog');
+  menu.setAttribute('aria-label', `Actions for ${card.name}`);
+
+  const title = document.createElement('div');
+  title.className = 'lp-title';
+  title.textContent = card.name;
+  menu.appendChild(title);
+
+  if (!isInLater) {
+    const laterBtn = document.createElement('button');
+    laterBtn.className = 'lp-btn';
+    laterBtn.textContent = '📌 Save for Later';
+    laterBtn.addEventListener('click', () => {
+      game.moveToLater(cardId);
+      game.deselect();
+      game.save();
+      renderAll();
+      dismissLongPressMenu();
+    });
+    menu.appendChild(laterBtn);
+  }
+
+  if (!isInDeck) {
+    const deckBtn = document.createElement('button');
+    deckBtn.className = 'lp-btn';
+    deckBtn.textContent = '↩ Return to Deck';
+    deckBtn.addEventListener('click', () => {
+      game.returnToDeck(cardId);
+      game.deselect();
+      game.save();
+      renderAll();
+      dismissLongPressMenu();
+    });
+    menu.appendChild(deckBtn);
+  }
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'lp-btn lp-btn-cancel';
+  cancelBtn.textContent = '✕ Cancel';
+  cancelBtn.addEventListener('click', dismissLongPressMenu);
+  menu.appendChild(cancelBtn);
+
+  // Position near the touch point, keeping within viewport
+  document.body.appendChild(menu);
+  longPressMenuEl = menu;
+
+  const mw = menu.offsetWidth  || 200;
+  const mh = menu.offsetHeight || 160;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  let left = cx - mw / 2;
+  let top  = cy + 16;
+  if (left < 8)       left = 8;
+  if (left + mw > vw - 8) left = vw - mw - 8;
+  if (top  + mh > vh - 8) top  = cy - mh - 16;
+  if (top  < 8)       top  = 8;
+
+  menu.style.left = `${left}px`;
+  menu.style.top  = `${top}px`;
+
+  // Backdrop tap to dismiss
+  const backdrop = document.createElement('div');
+  backdrop.className = 'lp-backdrop';
+  backdrop.addEventListener('touchstart', dismissLongPressMenu, { passive: true });
+  backdrop.addEventListener('click',      dismissLongPressMenu);
+  document.body.insertBefore(backdrop, menu);
+  longPressMenuEl._backdrop = backdrop;
+
+  // Vibrate for haptic feedback (where supported)
+  if (navigator.vibrate) navigator.vibrate(40);
+}
+
+function dismissLongPressMenu() {
+  if (!longPressMenuEl) return;
+  longPressMenuEl._backdrop && longPressMenuEl._backdrop.remove();
+  longPressMenuEl.remove();
+  longPressMenuEl = null;
+}
 
 // ─── Keyboard shortcut ────────────────────────────────────────────────────────
 
