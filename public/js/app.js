@@ -73,7 +73,6 @@ function makeCard(card, zone, slotIndex = null) {
   if (!isLocked) {
     el.addEventListener('click', e => {
       e.stopPropagation();
-      if (Date.now() - lastTapTime < 300) return; // suppress duplicate after touchend
       onCardClick(card.id, zone, slotIndex);
     });
   }
@@ -122,10 +121,7 @@ function makeSlot(slotIndex) {
 
   // Click on the slot background (not the card) → place selected card
   if (!game.lockedSlots.has(slotIndex)) {
-    el.addEventListener('click', () => {
-      if (Date.now() - lastTapTime < 300) return;
-      onSlotClick(slotIndex);
-    });
+    el.addEventListener('click', () => onSlotClick(slotIndex));
   }
 
   // Drag-over / drop
@@ -371,13 +367,24 @@ modalRetry.addEventListener('click', () => {
 // Close modal when clicking the backdrop
 modal.addEventListener('click', e => { if (e.target === modal) modal.hidden = true; });
 
+// ─── Suppress synthetic click after touchend tap ─────────────────────────────
+// iOS/Android fire a click after touchend even when preventDefault is called.
+// We intercept it in the capture phase (before any element handler) and kill it.
+document.addEventListener('click', e => {
+  if (suppressNextClick) {
+    suppressNextClick = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }
+}, true);
+
 // ─── Touch drag-and-drop + long-press context menu ───────────────────────────
 
 let touchDrag      = null;
 let touchClone     = null;
 let longPressTimer = null;
 let touchMoved     = false;
-let lastTapTime    = 0;  // timestamp of last tap handled in touchend
+let suppressNextClick = false; // true while synthetic click from touchend should be ignored
 const LONG_PRESS_MS    = 500;
 const LONG_PRESS_SLOP  = 8; // px movement allowed before it's a drag not a press
 
@@ -478,8 +485,7 @@ document.addEventListener('touchend', e => {
   if (!touchMoved) {
     // It's a tap — handle directly and suppress the synthetic click
     // (click events on divs are unreliable on iOS Safari)
-    e.preventDefault();
-    lastTapTime = Date.now();
+    suppressNextClick = true;
     const { cardId, zone, slotIndex } = touchDrag;
     touchDrag = null;
     onCardClick(cardId, zone, slotIndex);
