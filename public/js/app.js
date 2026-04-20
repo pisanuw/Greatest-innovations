@@ -37,8 +37,9 @@ const modalRetry   = $('result-retry');
 
 // ─── Render helpers ───────────────────────────────────────────────────────────
 
-function imgPath(id) {
-  return `images/cards/card-${String(id).padStart(2, '0')}.png`;
+function imgPath(id, revealed = false) {
+  const dir = revealed ? 'images/cards-revealed' : 'images/cards';
+  return `${dir}/card-${String(id).padStart(2, '0')}.png`;
 }
 
 /**
@@ -69,7 +70,8 @@ function makeCard(card, zone, slotIndex = null) {
     if (r === false) el.classList.add('incorrect');
   }
 
-  el.innerHTML = `<img src="${imgPath(card.id)}" alt="${card.name}" draggable="false">
+  const revealed = game.submitted && game.getScore().correct === 40;
+  el.innerHTML = `<img src="${imgPath(card.id, revealed)}" alt="${card.name}" draggable="false">
                   <span class="card-label">${card.name}</span>`;
 
   if (!isLocked) {
@@ -350,6 +352,26 @@ function showModal() {
   });
 
   modal.hidden = false;
+
+  // On perfect score, swap card images to revealed versions after a short delay
+  if (correct === 40) {
+    setTimeout(revealAllCards, 600);
+  }
+}
+
+function revealAllCards() {
+  document.querySelectorAll('.card img').forEach(img => {
+    const card = img.closest('.card');
+    if (!card) return;
+    const id = parseInt(card.dataset.cardId, 10);
+    if (!id) return;
+    img.style.transition = 'opacity .35s';
+    img.style.opacity = '0';
+    setTimeout(() => {
+      img.src = imgPath(id, true);
+      img.onload = () => { img.style.opacity = '1'; };
+    }, 350);
+  });
 }
 
 modalContinue.addEventListener('click', () => {
