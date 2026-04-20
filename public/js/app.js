@@ -278,7 +278,10 @@ wireDropZone(deckZoneEl,  ({ cardId, zone }) => { if (zone !== 'deck')  game.ret
 wireDropZone(laterZoneEl, ({ cardId, zone }) => { if (zone !== 'later') game.moveToLater(cardId);  });
 
 function parseDrop(e) {
-  try { return JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return null; }
+  try { return JSON.parse(e.dataTransfer.getData('text/plain')); } catch (err) {
+    console.warn('parseDrop: could not parse drag data', err);
+    return null;
+  }
 }
 
 // ─── Submit & Reset ───────────────────────────────────────────────────────────

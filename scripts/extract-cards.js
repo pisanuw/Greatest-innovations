@@ -44,7 +44,8 @@ for (const [ry1, ry2] of ROWS) {
     const cw = cx2 - cx1;
     const ch = ry2 - ry1;
 
-    // SVG overlay: white rectangles over badge (top-left) and year (bottom strip)
+    // SVG overlay: white rectangles over badge (top-left) and year (bottom strip).
+    // yearStart=69px: verified by pixel analysis — name text ends ≤y=67, year text starts ≥y=70.
     const yearStart = 69;
     const svg = `<svg width="${cw}" height="${ch}" xmlns="http://www.w3.org/2000/svg">
       <rect x="0" y="0" width="36" height="21" fill="rgb(235,233,229)"/>

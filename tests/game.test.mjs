@@ -22,6 +22,7 @@ function assert(cond, msg = 'Assertion failed') {
   if (!cond) throw new Error(msg);
 }
 
+// eq(actual, expected, msg) — matches Node.js assert.strictEqual(actual, expected) convention
 function eq(a, b, msg) {
   if (a !== b) throw new Error(msg ?? `Expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
 }
