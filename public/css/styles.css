@@ -407,6 +407,11 @@ body {
   flex: 1;
 }
 .slot .card:hover:not(.dragging) { transform: none; box-shadow: none; border-color: transparent; }
+.slot .card.selected {
+  border: 2px solid var(--sel-border);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.24);
+  background: var(--sel-bg);
+}
 .slot .card img {
   height: 54px;
   padding-top: 15px;

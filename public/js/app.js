@@ -467,9 +467,14 @@ document.addEventListener('touchend', e => {
   const orig = document.querySelector(`.card[data-card-id="${touchDrag.cardId}"]`);
   if (orig) orig.style.opacity = '';
 
-  // Tap (no drag movement) — let the click event handle selection/placement
   if (!touchMoved) {
+    // It's a tap — handle directly and suppress the synthetic click
+    // (click events on divs are unreliable on iOS Safari)
+    e.preventDefault();
+    const { cardId, zone, slotIndex } = touchDrag;
     touchDrag = null;
+    onCardClick(cardId, zone, slotIndex);
+    game.save();
     return;
   }
 
@@ -478,9 +483,9 @@ document.addEventListener('touchend', e => {
   const el = document.elementFromPoint(t.clientX, t.clientY);
 
   if (el) {
-    const slot      = el.closest('.slot');
-    const lZone     = el.closest('#later-zone');
-    const dZone     = el.closest('#deck-zone');
+    const slot  = el.closest('.slot');
+    const lZone = el.closest('#later-zone');
+    const dZone = el.closest('#deck-zone');
     if (slot && !slot.closest('#later-zone') && !slot.closest('#deck-zone')) {
       game.placeInSlot(touchDrag.cardId, parseInt(slot.dataset.slotIndex, 10));
     } else if (lZone && touchDrag.zone !== 'later') {
@@ -494,7 +499,7 @@ document.addEventListener('touchend', e => {
   game.deselect();
   game.save();
   renderAll();
-}, { passive: true });
+}, { passive: false });
 
 // ─── Long-press context menu ─────────────────────────────────────────────────
 
