@@ -24,7 +24,6 @@ const submitBtn    = $('submit-btn');
 const resetBtn     = $('reset-btn');
 const hintBar      = $('hint-bar');
 const hintText     = $('hint-text');
-const cancelBtn    = $('cancel-btn');
 const modal        = $('result-modal');
 const modalScore   = $('result-score');
 const modalMsg     = $('result-message');
@@ -240,11 +239,6 @@ function onSlotClick(slotIndex) {
 }
 
 // ─── Hint-bar action buttons ──────────────────────────────────────────────────
-
-cancelBtn.addEventListener('click', () => {
-  game.deselect();
-  renderAll();
-});
 
 // ─── Drop-zone wiring (deck panel and later panel) ────────────────────────────
 
