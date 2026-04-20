@@ -71,7 +71,11 @@ function makeCard(card, zone, slotIndex = null) {
                   <span class="card-label">${card.name}</span>`;
 
   if (!isLocked) {
-    el.addEventListener('click',   e => { e.stopPropagation(); onCardClick(card.id, zone, slotIndex); });
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      if (Date.now() - lastTapTime < 300) return; // suppress duplicate after touchend
+      onCardClick(card.id, zone, slotIndex);
+    });
   }
   el.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onCardClick(card.id, zone, slotIndex); }
@@ -118,7 +122,10 @@ function makeSlot(slotIndex) {
 
   // Click on the slot background (not the card) → place selected card
   if (!game.lockedSlots.has(slotIndex)) {
-    el.addEventListener('click', () => onSlotClick(slotIndex));
+    el.addEventListener('click', () => {
+      if (Date.now() - lastTapTime < 300) return;
+      onSlotClick(slotIndex);
+    });
   }
 
   // Drag-over / drop
@@ -370,6 +377,7 @@ let touchDrag      = null;
 let touchClone     = null;
 let longPressTimer = null;
 let touchMoved     = false;
+let lastTapTime    = 0;  // timestamp of last tap handled in touchend
 const LONG_PRESS_MS    = 500;
 const LONG_PRESS_SLOP  = 8; // px movement allowed before it's a drag not a press
 
@@ -471,6 +479,7 @@ document.addEventListener('touchend', e => {
     // It's a tap — handle directly and suppress the synthetic click
     // (click events on divs are unreliable on iOS Safari)
     e.preventDefault();
+    lastTapTime = Date.now();
     const { cardId, zone, slotIndex } = touchDrag;
     touchDrag = null;
     onCardClick(cardId, zone, slotIndex);
