@@ -87,7 +87,8 @@ export class GameState {
     this.incorrectSlots.delete(slotIndex);
 
     if (loc.zone === 'slot' && displaced !== null) {
-      // Swap
+      // Swap — clear both slots from incorrectSlots
+      this.incorrectSlots.delete(loc.slotIndex);
       this.slots[loc.slotIndex] = displaced;
       this.slots[slotIndex]     = cardId;
       return true;
