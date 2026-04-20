@@ -163,8 +163,11 @@ function renderLater() {
 }
 
 function updateHeader() {
-  placedEl.textContent = `${game.getPlacedCount()} / 40 placed`;
+  const placed = game.getPlacedCount();
+  placedEl.textContent = `${placed} / 40 placed`;
   submitBtn.disabled   = game.submitted;
+  const fill = document.getElementById('progress-fill');
+  if (fill) fill.style.width = `${(placed / 40) * 100}%`;
 }
 
 function updateHintBar() {
