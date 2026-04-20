@@ -25,13 +25,16 @@ export class GameState {
     this.selected    = null;
     this.submitted   = false;
     this.results     = null;
-    this.lockedSlots = new Set();
+    this.lockedSlots   = new Set(); // slot indices permanently frozen (correct)
+    this.incorrectSlots = new Set(); // slot indices marked wrong, cleared on move
   }
 
   /** Lock correct slots in place and re-open gameplay for wrong ones. */
   continueGame() {
     if (!this.submitted) return;
-    this.results.forEach((r, i) => { if (r === true) this.lockedSlots.add(i); });
+    this.results.forEach((r, i) => {
+      if (r === true) { this.lockedSlots.add(i); this.incorrectSlots.delete(i); }
+    });
     this.submitted = false;
     this.results   = null;
     this.selected  = null;
@@ -62,6 +65,7 @@ export class GameState {
     } else if (loc.zone === 'later') {
       this.later = this.later.filter(id => id !== cardId);
     } else {
+      this.incorrectSlots.delete(loc.slotIndex);
       this.slots[loc.slotIndex] = null;
     }
   }
@@ -80,6 +84,7 @@ export class GameState {
     if (loc.zone === 'slot' && this.lockedSlots.has(loc.slotIndex)) return false;
 
     const displaced = this.slots[slotIndex];
+    this.incorrectSlots.delete(slotIndex);
 
     if (loc.zone === 'slot' && displaced !== null) {
       // Swap
@@ -144,6 +149,9 @@ export class GameState {
       if (cardId === null) return null;
       return cardId === idx + 1;
     });
+    this.incorrectSlots = new Set(
+      this.results.map((r, i) => r === false ? i : -1).filter(i => i >= 0)
+    );
   }
 
   getScore() {
@@ -163,7 +171,8 @@ export class GameState {
         later:       this.later,
         slots:       this.slots,
         submitted:   this.submitted,
-        lockedSlots: [...this.lockedSlots],
+        lockedSlots:   [...this.lockedSlots],
+        incorrectSlots: [...this.incorrectSlots],
       }));
     } catch (_) { /* storage unavailable — silently skip */ }
   }
@@ -177,7 +186,8 @@ export class GameState {
       this.later       = d.later;
       this.slots       = d.slots;
       this.submitted   = d.submitted;
-      this.lockedSlots = new Set(d.lockedSlots || []);
+      this.lockedSlots   = new Set(d.lockedSlots   || []);
+      this.incorrectSlots = new Set(d.incorrectSlots || []);
       this.selected    = null;
       this.results     = this.submitted
         ? this.slots.map((id, i) => (id === null ? null : id === i + 1))

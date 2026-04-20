@@ -32,8 +32,7 @@ const modalScore   = $('result-score');
 const modalMsg     = $('result-message');
 const modalList    = $('result-list');
 const modalContinue = $('result-continue');
-const modalClose   = $('result-close');
-const modalRetry   = $('result-retry');
+const modalRetry    = $('result-retry');
 
 // ─── Render helpers ───────────────────────────────────────────────────────────
 
@@ -116,6 +115,8 @@ function makeSlot(slotIndex) {
     const r = game.results[slotIndex];
     if (r === true)  el.classList.add('correct');
     if (r === false) el.classList.add('incorrect');
+  } else if (game.incorrectSlots.has(slotIndex)) {
+    el.classList.add('incorrect');
   }
 
   // Click on the slot background (not the card) → place selected card
@@ -339,14 +340,12 @@ function showModal() {
                        <span class="ri-pos">#${i + 1}</span>
                        <span class="ri-name empty">— empty —</span>`;
     } else {
-      const card   = CARD_MAP.get(cardId);
-      const ok     = game.results[i];
-      const correct = CARD_MAP.get(i + 1);
+      const card = CARD_MAP.get(cardId);
+      const ok   = game.results[i];
       row.innerHTML = `<span class="ri-icon">${ok ? '✅' : '❌'}</span>
                        <span class="ri-pos">#${i + 1}</span>
                        <span class="ri-name">${card.name}</span>
-                       <span class="ri-year">${card.year}</span>
-                       ${ok ? '' : `<span class="ri-correct">(correct: ${correct.name})</span>`}`;
+                       <span class="ri-year">${card.year}</span>`;
     }
     modalList.appendChild(row);
   });
@@ -381,7 +380,6 @@ modalContinue.addEventListener('click', () => {
   renderAll();
 });
 
-modalClose.addEventListener('click', () => { modal.hidden = true; });
 modalRetry.addEventListener('click', () => {
   game.reset();
   game.save();
@@ -424,7 +422,39 @@ document.addEventListener('touchmove', e => {
   const t = e.touches[0];
   touchClone.style.left = `${t.clientX - touchDrag.offsetX}px`;
   touchClone.style.top  = `${t.clientY - touchDrag.offsetY}px`;
+  autoScrollNearEdge(t.clientX, t.clientY);
 }, { passive: false });
+
+const SCROLL_EDGE = 64;  // px from edge to trigger scroll
+const SCROLL_SPEED = 10; // px per touchmove event
+
+function autoScrollNearEdge(cx, cy) {
+  // Vertical scroll: board panel
+  const board = document.querySelector('.board-panel');
+  if (board) {
+    const r = board.getBoundingClientRect();
+    if (cx >= r.left && cx <= r.right) {
+      if      (cy < r.top    + SCROLL_EDGE) board.scrollTop -= SCROLL_SPEED;
+      else if (cy > r.bottom - SCROLL_EDGE) board.scrollTop += SCROLL_SPEED;
+    }
+  }
+  // Horizontal scroll: deck and later card lists (mobile horizontal layout)
+  document.querySelectorAll('.card-list').forEach(list => {
+    const r = list.getBoundingClientRect();
+    if (cy >= r.top && cy <= r.bottom) {
+      if      (cx < r.left  + SCROLL_EDGE) list.scrollLeft -= SCROLL_SPEED;
+      else if (cx > r.right - SCROLL_EDGE) list.scrollLeft += SCROLL_SPEED;
+    }
+    // Also vertical scroll for deck/later in portrait when they stack
+    if (cx >= r.left && cx <= r.right) {
+      if      (cy < r.top    + SCROLL_EDGE) list.scrollTop -= SCROLL_SPEED;
+      else if (cy > r.bottom - SCROLL_EDGE) list.scrollTop += SCROLL_SPEED;
+    }
+  });
+  // Window-level scroll for mobile stacked layout
+  if      (cy < SCROLL_EDGE)                     window.scrollBy(0, -SCROLL_SPEED);
+  else if (cy > window.innerHeight - SCROLL_EDGE) window.scrollBy(0,  SCROLL_SPEED);
+}
 
 document.addEventListener('touchend', e => {
   if (!touchDrag) return;
