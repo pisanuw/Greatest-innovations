@@ -463,10 +463,17 @@ document.addEventListener('touchend', e => {
   touchClone && touchClone.remove();
   touchClone = null;
 
-  // Restore opacity of original card (it will be re-rendered shortly)
+  // Restore opacity of original card
   const orig = document.querySelector(`.card[data-card-id="${touchDrag.cardId}"]`);
   if (orig) orig.style.opacity = '';
 
+  // Tap (no drag movement) — let the click event handle selection/placement
+  if (!touchMoved) {
+    touchDrag = null;
+    return;
+  }
+
+  // Drag — process drop target
   const t  = e.changedTouches[0];
   const el = document.elementFromPoint(t.clientX, t.clientY);
 
