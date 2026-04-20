@@ -24,8 +24,6 @@ const submitBtn    = $('submit-btn');
 const resetBtn     = $('reset-btn');
 const hintBar      = $('hint-bar');
 const hintText     = $('hint-text');
-const toLaterBtn   = $('to-later-btn');
-const toDeckBtn    = $('to-deck-btn');
 const cancelBtn    = $('cancel-btn');
 const modal        = $('result-modal');
 const modalScore   = $('result-score');
@@ -186,8 +184,6 @@ function updateHintBar() {
   if (game.selected && !game.submitted) {
     const card = CARD_MAP.get(game.selected.cardId);
     hintText.textContent = `"${card.name}" selected — click a slot to place it`;
-    toDeckBtn.hidden  = game.selected.zone === 'deck';
-    toLaterBtn.hidden = game.selected.zone === 'later';
     hintBar.hidden = false;
   } else {
     hintBar.hidden = true;
@@ -244,22 +240,6 @@ function onSlotClick(slotIndex) {
 }
 
 // ─── Hint-bar action buttons ──────────────────────────────────────────────────
-
-toLaterBtn.addEventListener('click', () => {
-  if (!game.selected) return;
-  game.moveToLater(game.selected.cardId);
-  game.deselect();
-  game.save();
-  renderAll();
-});
-
-toDeckBtn.addEventListener('click', () => {
-  if (!game.selected) return;
-  game.returnToDeck(game.selected.cardId);
-  game.deselect();
-  game.save();
-  renderAll();
-});
 
 cancelBtn.addEventListener('click', () => {
   game.deselect();
