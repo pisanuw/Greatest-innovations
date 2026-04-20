@@ -486,6 +486,7 @@ document.addEventListener('touchend', e => {
     // It's a tap — handle directly and suppress the synthetic click
     // (click events on divs are unreliable on iOS Safari)
     suppressNextClick = true;
+    setTimeout(() => { suppressNextClick = false; }, 350); // safety reset if click never fires
     const { cardId, zone, slotIndex } = touchDrag;
     touchDrag = null;
     onCardClick(cardId, zone, slotIndex);
