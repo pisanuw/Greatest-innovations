@@ -31,6 +31,7 @@ const modal        = $('result-modal');
 const modalScore   = $('result-score');
 const modalMsg     = $('result-message');
 const modalList    = $('result-list');
+const modalContinue = $('result-continue');
 const modalClose   = $('result-close');
 const modalRetry   = $('result-retry');
 
@@ -54,13 +55,15 @@ function makeCard(card, zone, slotIndex = null) {
   el.setAttribute('tabindex', '0');
   el.setAttribute('aria-label', card.name);
 
-  if (!game.submitted) el.draggable = true;
+  const isLocked = zone === 'slot' && slotIndex !== null && game.lockedSlots.has(slotIndex);
+  if (!game.submitted && !isLocked) el.draggable = true;
+  if (isLocked) el.style.cursor = 'default';
 
   if (game.selected && game.selected.cardId === card.id) {
     el.classList.add('selected');
   }
 
-  if (game.submitted && zone === 'slot' && slotIndex !== null) {
+  if (game.submitted && zone === 'slot' && slotIndex !== null && !isLocked) {
     const r = game.results[slotIndex];
     if (r === true)  el.classList.add('correct');
     if (r === false) el.classList.add('incorrect');
@@ -69,7 +72,9 @@ function makeCard(card, zone, slotIndex = null) {
   el.innerHTML = `<img src="${imgPath(card.id)}" alt="${card.name}" draggable="false">
                   <span class="card-label">${card.name}</span>`;
 
-  el.addEventListener('click',   e => { e.stopPropagation(); onCardClick(card.id, zone, slotIndex); });
+  if (!isLocked) {
+    el.addEventListener('click',   e => { e.stopPropagation(); onCardClick(card.id, zone, slotIndex); });
+  }
   el.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onCardClick(card.id, zone, slotIndex); }
   });
@@ -103,18 +108,22 @@ function makeSlot(slotIndex) {
     el.appendChild(makeCard(CARD_MAP.get(cardId), 'slot', slotIndex));
   }
 
-  if (game.submitted && game.results) {
+  if (game.lockedSlots.has(slotIndex)) {
+    el.classList.add('locked');
+  } else if (game.submitted && game.results) {
     const r = game.results[slotIndex];
     if (r === true)  el.classList.add('correct');
     if (r === false) el.classList.add('incorrect');
   }
 
   // Click on the slot background (not the card) → place selected card
-  el.addEventListener('click', () => onSlotClick(slotIndex));
+  if (!game.lockedSlots.has(slotIndex)) {
+    el.addEventListener('click', () => onSlotClick(slotIndex));
+  }
 
   // Drag-over / drop
   el.addEventListener('dragover', e => {
-    if (game.submitted) return;
+    if (game.submitted || game.lockedSlots.has(slotIndex)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     el.classList.add('drag-over');
@@ -311,10 +320,13 @@ function showModal() {
   modalScore.textContent = `${correct} / 40 correct`;
 
   if      (correct === 40)  modalMsg.textContent = '🎉 Perfect score! You know your history!';
-  else if (correct >= 30)   modalMsg.textContent = '🌟 Excellent! Really impressive!';
-  else if (correct >= 20)   modalMsg.textContent = '👍 Good effort — keep learning!';
-  else if (correct >= 10)   modalMsg.textContent = '📚 Not bad! Try again to improve.';
-  else                      modalMsg.textContent = '🤔 Tough game — give it another go!';
+  else if (correct >= 30)   modalMsg.textContent = '🌟 Excellent! Correct ones are locked — keep going!';
+  else if (correct >= 20)   modalMsg.textContent = '👍 Good effort! Correct ones are locked in blue.';
+  else if (correct >= 10)   modalMsg.textContent = '📚 Not bad! Correct ones are locked — keep rearranging.';
+  else                      modalMsg.textContent = '🤔 Keep going! Correct ones are locked in blue.';
+
+  // Hide Continue on perfect score
+  modalContinue.hidden = (correct === 40);
 
   modalList.innerHTML = '';
   game.slots.forEach((cardId, i) => {
@@ -339,6 +351,13 @@ function showModal() {
 
   modal.hidden = false;
 }
+
+modalContinue.addEventListener('click', () => {
+  game.continueGame();
+  game.save();
+  modal.hidden = true;
+  renderAll();
+});
 
 modalClose.addEventListener('click', () => { modal.hidden = true; });
 modalRetry.addEventListener('click', () => {

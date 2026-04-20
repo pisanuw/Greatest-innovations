@@ -19,12 +19,22 @@ export class GameState {
   // ─── Initialisation ─────────────────────────────────────────────────────
 
   reset() {
-    this.deckOrder = shuffle(CARDS.map(c => c.id)); // shuffled card ids
-    this.later     = [];                             // card ids in "Later" zone
-    this.slots     = new Array(40).fill(null);       // index 0 = position #1
-    this.selected  = null;  // { cardId, zone: 'deck'|'later'|'slot', slotIndex }
+    this.deckOrder   = shuffle(CARDS.map(c => c.id));
+    this.later       = [];
+    this.slots       = new Array(40).fill(null);
+    this.selected    = null;
+    this.submitted   = false;
+    this.results     = null;
+    this.lockedSlots = new Set();
+  }
+
+  /** Lock correct slots in place and re-open gameplay for wrong ones. */
+  continueGame() {
+    if (!this.submitted) return;
+    this.results.forEach((r, i) => { if (r === true) this.lockedSlots.add(i); });
     this.submitted = false;
-    this.results   = null;  // Array<true|false|null> per slot, set after submit
+    this.results   = null;
+    this.selected  = null;
   }
 
   // ─── Queries ─────────────────────────────────────────────────────────────
@@ -64,8 +74,10 @@ export class GameState {
    */
   placeInSlot(cardId, slotIndex) {
     if (this.submitted) return false;
+    if (this.lockedSlots.has(slotIndex)) return false;
     const loc = this.getLocation(cardId);
     if (!loc) return false;
+    if (loc.zone === 'slot' && this.lockedSlots.has(loc.slotIndex)) return false;
 
     const displaced = this.slots[slotIndex];
 
@@ -91,6 +103,7 @@ export class GameState {
     if (this.submitted) return false;
     const loc = this.getLocation(cardId);
     if (!loc || loc.zone === 'later') return false;
+    if (loc.zone === 'slot' && this.lockedSlots.has(loc.slotIndex)) return false;
     this._removeFromOrigin(cardId);
     this.later.push(cardId);
     return true;
@@ -101,6 +114,7 @@ export class GameState {
     if (this.submitted) return false;
     const loc = this.getLocation(cardId);
     if (!loc || loc.zone === 'deck') return false;
+    if (loc.zone === 'slot' && this.lockedSlots.has(loc.slotIndex)) return false;
     this._removeFromOrigin(cardId);
     this.deckOrder.unshift(cardId);
     return true;
@@ -145,10 +159,11 @@ export class GameState {
   save() {
     try {
       localStorage.setItem('innovations-v1', JSON.stringify({
-        deckOrder: this.deckOrder,
-        later:     this.later,
-        slots:     this.slots,
-        submitted: this.submitted,
+        deckOrder:   this.deckOrder,
+        later:       this.later,
+        slots:       this.slots,
+        submitted:   this.submitted,
+        lockedSlots: [...this.lockedSlots],
       }));
     } catch (_) { /* storage unavailable — silently skip */ }
   }
@@ -158,12 +173,13 @@ export class GameState {
       const raw = localStorage.getItem('innovations-v1');
       if (!raw) return false;
       const d = JSON.parse(raw);
-      this.deckOrder = d.deckOrder;
-      this.later     = d.later;
-      this.slots     = d.slots;
-      this.submitted = d.submitted;
-      this.selected  = null;
-      this.results   = this.submitted
+      this.deckOrder   = d.deckOrder;
+      this.later       = d.later;
+      this.slots       = d.slots;
+      this.submitted   = d.submitted;
+      this.lockedSlots = new Set(d.lockedSlots || []);
+      this.selected    = null;
+      this.results     = this.submitted
         ? this.slots.map((id, i) => (id === null ? null : id === i + 1))
         : null;
       return true;

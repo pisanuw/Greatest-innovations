@@ -18,12 +18,15 @@
   --slot-border:     #bfad94;
   --sel-border:      #2563eb;
   --sel-bg:          #eff6ff;
-  --correct:         #15803d;
-  --correct-bg:      #dcfce7;
-  --correct-border:  #16a34a;
+  --correct:         #1d4ed8;
+  --correct-bg:      #eff6ff;
+  --correct-border:  #2563eb;
   --incorrect:       #b91c1c;
   --incorrect-bg:    #fee2e2;
   --incorrect-border:#dc2626;
+  --locked:          #1d4ed8;
+  --locked-bg:       #eff6ff;
+  --locked-border:   #2563eb;
   --drag-over:       #dbeafe;
   --drag-border:     #3b82f6;
   --shadow-xs:       0 1px 2px rgba(0,0,0,.07);
@@ -385,6 +388,16 @@ body {
   background: var(--incorrect-bg);
   box-shadow: 0 0 0 1px var(--incorrect-border);
 }
+.slot.locked {
+  border-color: var(--locked-border);
+  border-style: solid;
+  background: var(--locked-bg);
+  box-shadow: 0 0 0 2px rgba(37,99,235,.28);
+}
+.slot.locked .slot-num {
+  color: var(--locked-border);
+  font-weight: 900;
+}
 
 .slot .card {
   border: none;
@@ -508,6 +521,12 @@ body {
   border: 1px solid var(--border);
 }
 .modal-actions .btn-secondary:hover:not(:disabled) { background: var(--bg-subtle); }
+.modal-actions .btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.modal-actions .btn-ghost:hover:not(:disabled) { background: var(--bg-subtle); color: var(--text); }
 
 /* ── Touch drag clone ─────────────────────────────────────────────────────── */
 .touch-clone {
