@@ -303,3 +303,61 @@ test('Swapping two red-outlined cards clears BOTH outlines', () => {
 console.log(`\n${'─'.repeat(58)}`);
 console.log(`${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
+
+
+// ── CSS Bug Analysis ─────────────────────────────────────────────────────────
+// Root cause: .slot .card:hover:not(.dragging) { border-color: transparent }
+// On mobile, after a tap the browser applies persistent :hover ("sticky hover")
+// to the tapped element. This rule then fires and sets border-color: transparent,
+// making the blue selected border invisible.
+//
+// The fix: add :not(.selected) to the hover selector so it simply does NOT
+// MATCH selected cards — a non-matching rule cannot override anything.
+
+console.log('\n── CSS Bug: sticky hover hides selected border on mobile ─────────────');
+
+// Simulate CSS selector matching (does the hover rule apply to this element?)
+// Assumes element IS currently hovered and IS inside a .slot
+function hoverRuleMatches(classes, ruleVariant) {
+  const has = c => classes.includes(c);
+  if (ruleVariant === 'buggy')  return !has('dragging');                      // :not(.dragging)
+  if (ruleVariant === 'fixed')  return !has('dragging') && !has('selected');  // :not(.dragging):not(.selected)
+}
+
+test('Bug confirmed: hover rule matches a selected+hovered card → border-color:transparent fires', () => {
+  const classes = ['card', 'selected']; // selected card, sticky hover after tap
+  assert(hoverRuleMatches(classes, 'buggy') === true,
+    'Buggy hover rule matches selected cards → kills blue border → outline invisible');
+});
+
+test('Fix: updated hover rule does NOT match a selected card', () => {
+  const classes = ['card', 'selected'];
+  assert(hoverRuleMatches(classes, 'fixed') === false,
+    'Fixed rule skips selected cards → border-color:transparent not applied → outline visible');
+});
+
+test('Fix: updated hover rule still suppresses border on unselected hovered cards', () => {
+  assert(hoverRuleMatches(['card'], 'fixed') === true, 'Normal hover suppression preserved');
+});
+
+test('Fix: dragging cards still excluded by both variants', () => {
+  assert(hoverRuleMatches(['card', 'dragging'],          'buggy') === false, 'buggy excludes dragging');
+  assert(hoverRuleMatches(['card', 'dragging'],          'fixed') === false, 'fixed excludes dragging');
+  assert(hoverRuleMatches(['card', 'dragging', 'selected'], 'fixed') === false, 'fixed excludes dragging+selected');
+});
+
+import { readFileSync as _readCss } from 'fs';
+const _css = _readCss('./public/css/styles.css', 'utf8');
+test('Fix is in styles.css: buggy line removed', () => {
+  assert(!_css.includes('.slot .card:hover:not(.dragging) {'),
+    'Buggy hover line should be removed');
+});
+test('Fix is in styles.css: :not(.selected) present', () => {
+  assert(_css.includes(':not(.selected)'),
+    'Fixed hover rule with :not(.selected) should be present');
+});
+
+// ── Summary ─────────────────────────────────────────────────────────────────
+console.log(`\n${'─'.repeat(58)}`);
+console.log(`${passed} passed, ${failed} failed`);
+if (failed > 0) process.exit(1);
