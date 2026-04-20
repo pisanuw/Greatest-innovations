@@ -73,6 +73,7 @@ function makeCard(card, zone, slotIndex = null) {
   if (!isLocked) {
     el.addEventListener('click', e => {
       e.stopPropagation();
+      if (isTouchDevice) return; // handled by touchend; synthetic click must be ignored
       onCardClick(card.id, zone, slotIndex);
     });
   }
@@ -121,7 +122,10 @@ function makeSlot(slotIndex) {
 
   // Click on the slot background (not the card) → place selected card
   if (!game.lockedSlots.has(slotIndex)) {
-    el.addEventListener('click', () => onSlotClick(slotIndex));
+    el.addEventListener('click', () => {
+      if (isTouchDevice) return; // handled by touchend
+      onSlotClick(slotIndex);
+    });
   }
 
   // Drag-over / drop
@@ -367,16 +371,11 @@ modalRetry.addEventListener('click', () => {
 // Close modal when clicking the backdrop
 modal.addEventListener('click', e => { if (e.target === modal) modal.hidden = true; });
 
-// ─── Suppress synthetic click after touchend tap ─────────────────────────────
-// iOS/Android fire a click after touchend even when preventDefault is called.
-// We intercept it in the capture phase (before any element handler) and kill it.
-document.addEventListener('click', e => {
-  if (suppressNextClick) {
-    suppressNextClick = false;
-    e.stopPropagation();
-    e.preventDefault();
-  }
-}, true);
+// ─── Touch device detection ──────────────────────────────────────────────────
+// Set once on first touch. Click handlers check this and no-op on touch devices
+// so synthetic clicks after touchend never double-fire interactions.
+let isTouchDevice = false;
+document.addEventListener('touchstart', () => { isTouchDevice = true; }, { once: true, passive: true });
 
 // ─── Touch drag-and-drop + long-press context menu ───────────────────────────
 
@@ -384,34 +383,46 @@ let touchDrag      = null;
 let touchClone     = null;
 let longPressTimer = null;
 let touchMoved     = false;
-let suppressNextClick = false; // true while synthetic click from touchend should be ignored
+let touchSlot      = null; // slotIndex of an empty-slot tap on touch devices
 const LONG_PRESS_MS    = 500;
 const LONG_PRESS_SLOP  = 8; // px movement allowed before it's a drag not a press
 
 document.addEventListener('touchstart', e => {
   if (game.submitted) return;
+
+  touchMoved = false;
+  touchDrag  = null;
+  touchSlot  = null;
+
   const cardEl = e.target.closest('.card');
-  if (!cardEl) return;
+
+  if (!cardEl) {
+    // No card — check if tapping a board slot (empty slot placement)
+    const slotEl = e.target.closest('.slot');
+    if (slotEl) {
+      const si = parseInt(slotEl.dataset.slotIndex, 10);
+      if (!game.lockedSlots.has(si)) touchSlot = { slotIndex: si };
+    }
+    return;
+  }
 
   const cardId    = parseInt(cardEl.dataset.cardId, 10);
   const zone      = cardEl.dataset.zone;
   const slotIndex = cardEl.dataset.slotIndex != null ? parseInt(cardEl.dataset.slotIndex, 10) : null;
   const touch     = e.touches[0];
-  const startX    = touch.clientX;
-  const startY    = touch.clientY;
   const rect      = cardEl.getBoundingClientRect();
 
-  touchMoved = false;
+  // Skip locked slot cards
+  if (zone === 'slot' && slotIndex !== null && game.lockedSlots.has(slotIndex)) return;
 
-  // Long-press: show context menu if finger stays still for LONG_PRESS_MS
+  // Long-press timer — show context menu if finger stays still
   longPressTimer = setTimeout(() => {
     if (touchMoved) return;
-    // Cancel the drag that was being set up
     if (touchClone) { touchClone.remove(); touchClone = null; }
     const orig = document.querySelector(`.card[data-card-id="${cardId}"]`);
     if (orig) orig.style.opacity = '';
     touchDrag = null;
-    showLongPressMenu(cardId, zone, slotIndex, startX, startY);
+    showLongPressMenu(cardId, zone, slotIndex, touch.clientX, touch.clientY);
   }, LONG_PRESS_MS);
 
   touchDrag = { cardId, zone, slotIndex, offsetX: touch.clientX - rect.left, offsetY: touch.clientY - rect.top };
@@ -472,21 +483,30 @@ function autoScrollNearEdge(cx, cy) {
   else if (cy > window.innerHeight - SCROLL_EDGE) window.scrollBy(0,  SCROLL_SPEED);
 }
 
-document.addEventListener('touchend', e => {
+document.addEventListener('touchend', () => {
   clearTimeout(longPressTimer);
+
+  // ── Tap on an empty board slot ──────────────────────────────────────────
+  if (!touchMoved && touchSlot !== null) {
+    const { slotIndex } = touchSlot;
+    touchSlot = null;
+    touchDrag = null;
+    onSlotClick(slotIndex);
+    game.save();
+    return;
+  }
+  touchSlot = null;
+
   if (!touchDrag) return;
+
   touchClone && touchClone.remove();
   touchClone = null;
-
-  // Restore opacity of original card
   const orig = document.querySelector(`.card[data-card-id="${touchDrag.cardId}"]`);
   if (orig) orig.style.opacity = '';
 
+  // ── Tap on a card ────────────────────────────────────────────────────────
+  // Synthetic click will fire but click handlers check isTouchDevice and return.
   if (!touchMoved) {
-    // It's a tap — handle directly and suppress the synthetic click
-    // (click events on divs are unreliable on iOS Safari)
-    suppressNextClick = true;
-    setTimeout(() => { suppressNextClick = false; }, 350); // safety reset if click never fires
     const { cardId, zone, slotIndex } = touchDrag;
     touchDrag = null;
     onCardClick(cardId, zone, slotIndex);
@@ -494,10 +514,9 @@ document.addEventListener('touchend', e => {
     return;
   }
 
-  // Drag — process drop target
-  const t  = e.changedTouches[0];
+  // ── Drag ─────────────────────────────────────────────────────────────────
+  const t  = event.changedTouches[0];
   const el = document.elementFromPoint(t.clientX, t.clientY);
-
   if (el) {
     const slot  = el.closest('.slot');
     const lZone = el.closest('#later-zone');
@@ -515,7 +534,7 @@ document.addEventListener('touchend', e => {
   game.deselect();
   game.save();
   renderAll();
-}, { passive: false });
+}, { passive: true });
 
 // ─── Long-press context menu ─────────────────────────────────────────────────
 
