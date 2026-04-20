@@ -1,0 +1,14 @@
+{
+  "name": "greatest-innovations",
+  "version": "1.0.0",
+  "description": "Card ordering game: place the 40 greatest innovations in chronological order",
+  "type": "module",
+  "scripts": {
+    "start": "npx serve public -l 3000",
+    "extract": "node scripts/extract-cards.js",
+    "test": "node tests/game.test.mjs"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}

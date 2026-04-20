@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>40 Greatest Innovations – Ordering Game</title>
+  <meta name="description" content="Place the 40 greatest innovations in chronological order.">
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header class="app-header">
+    <div>
+      <h1>🏆 40 Greatest Innovations</h1>
+      <p class="subtitle">Arrange all 40 cards in chronological order, then press Check Answers</p>
+    </div>
+    <div class="header-right">
+      <span id="placed-count" class="stat-pill">0 / 40 placed</span>
+      <button id="submit-btn" class="btn btn-primary">Check Answers</button>
+      <button id="reset-btn"  class="btn btn-secondary">Reset</button>
+    </div>
+  </header>
+
+  <!-- ── Hint / action bar (visible while a card is selected) ────────────── -->
+  <div id="hint-bar" class="hint-bar" hidden aria-live="polite">
+    <span id="hint-text"></span>
+    <button id="to-later-btn" class="btn btn-sm btn-secondary">Save for Later</button>
+    <button id="to-deck-btn"  class="btn btn-sm btn-secondary">Return to Deck</button>
+    <button id="cancel-btn"   class="btn btn-sm btn-ghost">✕ Cancel</button>
+  </div>
+
+  <!-- ── Three-zone game layout ───────────────────────────────────────────── -->
+  <main class="game-layout">
+
+    <!-- Deck (unplaced cards) -->
+    <aside id="deck-zone" class="side-panel deck-panel" aria-label="Card deck">
+      <div class="panel-header">
+        <h2>Deck</h2>
+        <span id="deck-count" class="count-badge" aria-label="Cards in deck">40</span>
+      </div>
+      <div id="deck" class="card-list" role="list" aria-label="Available cards"></div>
+    </aside>
+
+    <!-- Board (40 ordered slots) -->
+    <section class="board-panel" aria-label="Game board">
+      <p class="board-instructions">
+        <strong>#1</strong> = oldest invention &nbsp;·&nbsp; <strong>#40</strong> = newest
+        &nbsp;·&nbsp; Drag or click to place • drag slot-to-slot to swap
+      </p>
+      <div id="board" class="board-grid" role="list" aria-label="Placement board"></div>
+    </section>
+
+    <!-- Later (holding area) -->
+    <aside id="later-zone" class="side-panel later-panel" aria-label="Save for later">
+      <div class="panel-header">
+        <h2>Later</h2>
+        <span id="later-count" class="count-badge" aria-label="Cards saved for later">0</span>
+      </div>
+      <div id="later" class="card-list" role="list" aria-label="Cards saved for later"></div>
+      <p class="later-hint">Drop cards here to decide later</p>
+    </aside>
+
+  </main>
+
+</div><!-- .app-shell -->
+
+<!-- ── Results modal ────────────────────────────────────────────────────── -->
+<div id="result-modal" class="modal-overlay" hidden
+     role="dialog" aria-modal="true" aria-labelledby="result-title">
+  <div class="modal-box">
+    <h2 id="result-title">Results</h2>
+    <p id="result-score"  class="result-score"></p>
+    <p id="result-message" class="result-message"></p>
+    <div id="result-list" class="result-list" role="list" aria-label="Card results"></div>
+    <div class="modal-actions">
+      <button id="result-close" class="btn btn-secondary">See Board</button>
+      <button id="result-retry" class="btn btn-primary">Play Again</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
