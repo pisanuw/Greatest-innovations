@@ -189,7 +189,7 @@ body {
 /* ── Game layout ─────────────────────────────────────────────────────────── */
 .game-layout {
   display: grid;
-  grid-template-columns: 205px 1fr 205px;
+  grid-template-columns: 240px 1fr 240px;
   overflow: hidden;
 }
 
@@ -299,18 +299,30 @@ body {
 
 .card img {
   width: 100%;
-  height: 72px;
+  height: 90px;
   object-fit: cover;
   object-position: center top;
   display: block;
   pointer-events: none;
 }
 .card-label {
-  padding: 5px 8px 6px;
-  font-size: 0.72rem;
+  padding: 6px 9px 7px;
+  font-size: 0.78rem;
   font-weight: 700;
   line-height: 1.3;
   color: var(--text);
+}
+
+/* ── Deck "more" indicator ───────────────────────────────────────────────── */
+.deck-more-indicator {
+  text-align: center;
+  padding: 8px 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-xs);
 }
 
 /* ── Board panel ─────────────────────────────────────────────────────────── */
@@ -544,7 +556,7 @@ body {
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 980px) {
-  .game-layout { grid-template-columns: 175px 1fr 175px; }
+  .game-layout { grid-template-columns: 200px 1fr 200px; }
 }
 
 @media (max-width: 740px) {

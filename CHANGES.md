@@ -1,0 +1,7 @@
+# Changes
+
+Format: `YYYY-MM-DD [type] description` (max 200 chars). Types: decision, plan, doc, scope, code, note.
+
+2026-05-16 [note] Initialized.
+
+2026-05-16 [code] Limit deck to 8 visible cards, widen side panels (205->240px), enlarge card images and labels for readability

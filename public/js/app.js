@@ -161,9 +161,18 @@ function renderAll() {
   updateHintBar();
 }
 
+const DECK_VISIBLE_LIMIT = 8;
+
 function renderDeck() {
   deckEl.innerHTML = '';
-  game.deckOrder.forEach(id => deckEl.appendChild(makeCard(CARD_MAP.get(id), 'deck')));
+  const visible = game.deckOrder.slice(0, DECK_VISIBLE_LIMIT);
+  visible.forEach(id => deckEl.appendChild(makeCard(CARD_MAP.get(id), 'deck')));
+  if (game.deckOrder.length > DECK_VISIBLE_LIMIT) {
+    const more = document.createElement('div');
+    more.className = 'deck-more-indicator';
+    more.textContent = `+ ${game.deckOrder.length - DECK_VISIBLE_LIMIT} more`;
+    deckEl.appendChild(more);
+  }
   deckCountEl.textContent = game.deckOrder.length;
 }
 
