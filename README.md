@@ -2,6 +2,8 @@
 
 A web-based card-ordering game where players arrange the 40 greatest innovations of all time in chronological order.
 
+**Play it live:** https://order-cards.netlify.app/
+
 ## Gameplay
 
 1. **Deck** — all 40 invention cards start here, shuffled.
@@ -46,6 +48,7 @@ node scripts/extract-cards.js
 
 The `netlify.toml` configures the `public/` folder as the publish directory.  
 Push to your connected repository and Netlify will deploy automatically.
+The live site is at https://order-cards.netlify.app/.
 
 ## Architecture
 
